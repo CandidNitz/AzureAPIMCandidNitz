@@ -1,0 +1,30 @@
+
+<policies>
+    <!-- Throttle, authorize, validate, cache, or transform the requests -->
+    <inbound>
+        <base />
+        <set-variable name="userId" value="@(context.Request.Headers.GetValueOrDefault("callerId", ""))" />
+        <cache-lookup-value key="@("userId-" + context.Variables["userId"])" variable-name="myvar" />
+        <choose>
+            <when condition="@(!context.Variables.ContainsKey("myvar"))">
+                <set-variable name="myvar" value="@("username-" + context.Request.Headers.GetValueOrDefault("callerId", ""))" />
+                <cache-store-value key="@("userId-" + context.Variables["userId"])" value="@((string)context.Variables["myvar"])" duration="180" />
+            </when>
+        </choose>
+    </inbound>
+    <!-- Control if and how the requests are forwarded to services  -->
+    <backend>
+        <base />
+    </backend>
+    <!-- Customize the responses -->
+    <outbound>
+        <base />
+        <set-header name="callerName" exists-action="override">
+            <value>@((string)context.Variables["myvar"])</value>
+        </set-header>
+    </outbound>
+    <!-- Handle exceptions and customize error responses  -->
+    <on-error>
+        <base />
+    </on-error>
+</policies>
